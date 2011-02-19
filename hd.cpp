@@ -6,10 +6,12 @@
 
 #include <cstdio>
 #include <cstring>
-#include <cstdlib>
-#include <fcntl.h>
-#include <getopt.h>
-#include <cerrno>
+// #include <cstdlib>
+// #include <fcntl.h>
+// #include <getopt.h>
+// #include <cerrno>
+
+#include <algorithm>
 
 #ifdef LINUX
 #include <unistd.h>
@@ -18,14 +20,22 @@
 
 // Macros.
 
-const int MAX_READ_BUF_SIZE = 16384;
-const int STRSIZE = 128;
-const int HFILE_ERROR =  -1;
+#ifdef _DEBUG
+#define DBGMSG(s)  s
+#else   // _DEBUG
+#define DBGMSG(list)
+#endif  // _DEBUG
+
+
+
+
+const unsigned int MAX_READ_BUF_SIZE( 65536 );
+const unsigned int STRSIZE( 128 );
 
 
 // Display flags.
 
-enum displayFlags
+enum DisplayFlags
 {
     DF_SHOW_ADDRESS = 1,
     DF_SHOW_ASCII = 2,
@@ -34,21 +44,22 @@ enum displayFlags
 };
 
 
+inline char AsciiFromBin( unsigned char b )
+{
+    return (char)( ( b > 0x1f && b < 0x80 ) ? (char) b : '.' );
+}
 
-#define AsciiFromBin(b) \
-(char)( ( b > 0x1f && b < 0x80 ) ? (char) b : '.' )
+
+inline unsigned short HiWord( unsigned int i )
+{
+    return ( i >> 16 ) & 0x0000ffff;
+}
 
 
-#define HiWord(dw)      ((short)((((int)(dw)) >> 16) & 0xFFFF))
-
-#define LoWord(dw)      ((short)(int)(dw))
-
-#ifdef _DEBUG
-#define DBGMSG(list)            printf list
-#else   // _DEBUG
-#define DBGMSG(list)
-#endif  // _DEBUG
-
+inline unsigned short LoWord( unsigned int i )
+{
+    return i & 0x0000ffff;
+}
 
 
 
@@ -59,20 +70,20 @@ struct GLOBAL
 {
 public:
     GLOBAL()
-      : numArgs( 0 ),
-        dwNumBytes( 0 ),
+      : num_args( 0 ),
+        num_bytes( 0 ),
         offset( 0 ),
-        fUseNumBytes( false ),
-        fUseOffset( false )
+        use_num_bytes( false ),
+        use_offset( false )
     {
     }
     
 public:
-    int numArgs;
-    int dwNumBytes;
+    int num_args;
+    int num_bytes;
     int offset;
-    bool fUseNumBytes;
-    bool fUseOffset;
+    bool use_num_bytes;
+    bool use_offset;
 };
 
 
@@ -80,6 +91,9 @@ public:
 // Data.
 
 GLOBAL global;
+
+
+
 
 
 const char *usage[] =
@@ -102,26 +116,16 @@ const char *usage[] =
 
 // Function prototypes.
 
-bool HexDumpFile( char const *path, int flags );
+bool hex_dump_file( char const *path, unsigned int flags );
 
-char *FormatHex( char *str,  int flags,
-                 int offset, unsigned char const *pBuf, short count );
-
-short ReadBufSize( int size )
-{
-    if ( size > MAX_READ_BUF_SIZE )
-    {
-        size = MAX_READ_BUF_SIZE;
-    }
-    
-    return LoWord( size );
-}
+char *format_hex( char *str,  unsigned int flags,
+                  unsigned int offset, unsigned char const *buffer, unsigned int count );
 
 #ifdef _FILELENGTH
-int file_length( int fd );
+unsigned int file_length( FILE *fp );
 #endif
 
-void DisplayText( const char **str );
+void display_text( const char **str );
 
 
 
@@ -130,12 +134,12 @@ void DisplayText( const char **str );
 
 int main( int argc, char **argv )
 {
-    int result = 0;
-    int numArgs;
+    int result(0);
+    int num_args;
     int opt;
-    int flags = DF_SHOW_ADDRESS | DF_SHOW_ASCII | DF_PAGE_ALIGN;
-    const char *optstring = "aAhkn:s:";
-    
+    unsigned int flags( DF_SHOW_ADDRESS | DF_SHOW_ASCII | DF_PAGE_ALIGN );
+    const char *optstring( "aAhkn:s:" );
+
     // Process command line arguments.
     
     do
@@ -146,34 +150,34 @@ int main( int argc, char **argv )
         {
             case 'a':
                 flags &= ~DF_SHOW_ADDRESS;
-                DBGMSG(( "Turning off address display\n" ));
+                DBGMSG( printf( "Turning off address display\n" ); )
                 break;
                 
             case 'A':
                 flags &= ~DF_SHOW_ASCII;
-                DBGMSG(( "Turning off ASCII display\n" ));
+                DBGMSG( printf( "Turning off ASCII display\n" ); )
                 break;
                 
             case 'h':
-                DisplayText( usage );
+                display_text( usage );
                 exit( 0 );
                 break;
                 
             case 'k':
                 flags &= ~DF_PAGE_ALIGN;
-                DBGMSG(( "Turning off page alignment\n" ));
+                DBGMSG( printf( "Turning off page alignment\n" ); )
                 break;
                 
             case 'n':
-                global.dwNumBytes = strtoul( optarg, NULL, 16 );
-                global.fUseNumBytes = true;
-                DBGMSG(( "Got -n argument.  Number of bytes to dump: %lu\n", global.dwNumBytes ));
+                global.num_bytes = strtoul( optarg, NULL, 16 );
+                global.use_num_bytes = true;
+                DBGMSG( printf( "Got -n argument.  Number of bytes to dump: %u\n", global.num_bytes ); )
                 break;
                 
             case 's':
                 global.offset = strtoul( optarg, NULL, 16 );
-                global.fUseOffset = true;
-                DBGMSG(( "Got -o argument.  Will dump from offset: %lu\n", global.offset ));
+                global.use_offset = true;
+                DBGMSG( printf( "Got -o argument.  Will dump from offset: %u\n", global.offset ); )
                 break;
                 
             case '?':  // Unrecognized arguments.
@@ -182,33 +186,33 @@ int main( int argc, char **argv )
         }
         
     }
-    while ( opt != EOF );
+    while( opt != EOF );
+
+    DBGMSG( printf( "optind = %d, opterr = %d, optopt = %d\n", optind, opterr, optopt ); )
     
-    DBGMSG(( "optind = %d, opterr = %d, optopt = %d\n", optind, opterr, optopt ));
+    num_args = argc - optind;
+    global.num_args = num_args;
     
-    numArgs = argc - optind;
-    global.numArgs = numArgs;
+    DBGMSG( printf( "num_args = %d\n", num_args ); )
     
-    DBGMSG(( "numArgs = %d\n", numArgs ));
-    
-    if( numArgs > 0 )
+    if( num_args > 0 )
     {
-        char * arg;
+        char *arg;
         
         argv++;     // Step past the program name.
         
         while( ( arg = *argv++ ) != 0 )
         {
-            DBGMSG( ( "Calling HexDumpFile( %s )\n", arg ) );
+            DBGMSG( printf( "Calling hex_dump_file( %s )\n", arg ) ; )
             
-            if ( numArgs > 1 )
+            if ( num_args > 1 )
             {
                 printf( "%s\n", arg );
             }
             
-            result += HexDumpFile( arg, flags );
+            result += hex_dump_file( arg, flags );
             
-            if ( numArgs > 1 )
+            if ( num_args > 1 )
             {
                 printf( "\n" );
             }
@@ -226,76 +230,49 @@ int main( int argc, char **argv )
 
 
 
-bool HexDumpFile( char const *path, int flags )
+bool hex_dump_file( char const *path, unsigned int flags )
 {
-    int fd;
-    unsigned char *pCur;
-#ifndef _M_IX86
-    int mode = O_RDONLY;
-#else
-    int mode = O_RDONLY | O_BINARY;
-#endif
+    FILE *fp = fopen( path, "rb" );
     
-    DBGMSG(( "Calling open( %s, ... ) ...", path ));
-    
-    fd = open( path, mode );
-    
-    DBGMSG(( "returned %d\n", fd ));
-    
-    if ( fd != HFILE_ERROR )
+    if( fp != 0 )
     {
-        int size = file_length( fd );
-        int bytes_to_dump;
-        int buffer_size;
-        unsigned char *pBuf;
+        unsigned int size = file_length( fp );
+        unsigned int bytes_to_dump;
         
-        if ( global.fUseNumBytes )
+        if( global.use_num_bytes )
         {
-            bytes_to_dump = global.dwNumBytes;
+            bytes_to_dump = global.num_bytes;
         }
         else
         {
             bytes_to_dump = size;
         }
         
-        buffer_size = ReadBufSize( bytes_to_dump );
+        unsigned int buffer_size = std::max( MAX_READ_BUF_SIZE, bytes_to_dump );
         
-        DBGMSG(( "file_length(%d) returned %lu\n", fd, size ));
+        unsigned char *buffer = new unsigned char[ buffer_size ];
         
-        pBuf = (unsigned char *) malloc( buffer_size );
-        
-        if ( pBuf )
+        if( buffer != 0 )
         {
-            char * pStr;
+            char *str = new char[ STRSIZE ];
             
-            DBGMSG( ( "malloc(%ld) was successful\n", buffer_size ) );
-            
-            pStr = ( char * ) malloc( STRSIZE );
-            
-            if ( pStr )
+            if( str != 0 )
             {
                 int offset;
                 
-                DBGMSG( ( "malloc(%d) was successful\n", STRSIZE ) );
+                offset = global.use_offset ? global.offset : 0L;
                 
-                offset = global.fUseOffset ? global.offset : 0L;
+                fseek( fp, offset, SEEK_SET );
                 
-                lseek( fd, offset, SEEK_SET );
+                DBGMSG( printf( "Starting at offset: %u\n", offset ); )
                 
-                DBGMSG(( "Starting at offset: %lu\n", offset ));
-                
-                while( (long) bytes_to_dump > 0 )
+                while( bytes_to_dump > 0 )
                 {
-                    int num_read;
+                    unsigned int num_read;
                     
-                    num_read = read( fd, pBuf, buffer_size );
+                    num_read = fread( buffer, sizeof(unsigned char), buffer_size, fp );
                     
-                    DBGMSG(( "read( %d, ..., %d ) returned %d\n", fd, buffer_size, num_read ));
-                    
-                    if( num_read == -1 )
-                    {
-                        fprintf( stderr, "\terrno = %d\n", errno );
-                    }
+                    DBGMSG( printf( "fread() returned %d\n", num_read ); )
                     
                     if( num_read == 0 )
                     {
@@ -303,41 +280,41 @@ bool HexDumpFile( char const *path, int flags )
                         break;
                     }
                     
-                    pCur = pBuf;
+                    unsigned char *cur = buffer;
                     
                     bytes_to_dump -= num_read;
                     
                     while( num_read > 0 )
                     {
-                        short wNum = (short) ( ( num_read > 15 ) ? 16 : num_read );
+                        unsigned int count = (unsigned int) ( ( num_read > 15 ) ? 16 : num_read );
                         
-                        FormatHex( pStr, flags, offset, pCur, wNum );
+                        format_hex( str, flags, offset, cur, count );
                         
-                        fprintf( stdout, "%s\n", pStr );
+                        fprintf( stdout, "%s\n", str );
                         
                         num_read -= 16;
                         
-                        pCur += 16;
+                        cur += 16;
                         
                         offset += 16;
                     }
                 }
                 
-                free( pStr );
+                delete [] str;
             }
             else
             {
-                DBGMSG( ( "malloc(%d) failed\n", STRSIZE ) );
+                DBGMSG( fprintf( stderr, "new(%d) failed\n", STRSIZE ); )
             }
             
-            free( pBuf );
+            delete [] buffer;
         }
         else
         {
-            DBGMSG( ( "malloc(%d) failed\n", buffer_size ) );
+            DBGMSG( printf( "new(%d) failed\n", buffer_size ); )
         }
         
-        close( fd );
+        fclose( fp );
     }
     
     return true;    // to continue processing.
@@ -346,81 +323,81 @@ bool HexDumpFile( char const *path, int flags )
 
 
 
-char *FormatHex( char *pszStr, int flags,
-                int offset, unsigned char const *pBuf, short wNum )
+char *format_hex( char *str, unsigned int flags,
+                  unsigned int offset, unsigned char const *buffer, unsigned int count )
 {
-    char szHex[ 60 ] = { 0 };
-    char szAscii[ 20 ];
-    unsigned char bCur;
-    char szTmp[ 8 ];
-    short i;
+    char hex_str[ 60 ] = { 0 };
+    char ascii_string[ 20 ];
+    char temp_str[ 8 ];
+    unsigned char b;
+    unsigned int i;
+
     
-    
-    for( i = 0; i < wNum; i++ )
+    for( i = 0; i < count; i++ )
     {
-        bCur = *( pBuf + i );
+        b = *( buffer + i );
         
-        sprintf( szTmp, "%02x ", bCur );
+        sprintf( temp_str, "%02x ", b );
         
-        strcat( szHex, szTmp );
+        strcat( hex_str, temp_str );
         
         if( i == 7 )
         {
-            strcat( szHex, " " );
+            strcat( hex_str, " " );
         }
         
         if( flags & DF_SHOW_ASCII )
         {
-            szAscii[ i ] = AsciiFromBin( bCur );
+            ascii_string[ i ] = AsciiFromBin( b );
         }
         else
         {
-            szAscii[ i ] = 0;
+            ascii_string[ i ] = 0;
         }
     }
     
-    szAscii[ i ] = 0;
+    ascii_string[ i ] = 0;
     
-    if ( flags & DF_SHOW_ADDRESS )
+    if( flags & DF_SHOW_ADDRESS )
     {
-        if ( flags & DF_SEGMENTED_ADDRESS )
+        if( flags & DF_SEGMENTED_ADDRESS )
         {
-            sprintf( pszStr, "%04x:%04x   ", HiWord( offset ), LoWord( offset ) );
+            sprintf( str, "%04x:%04x   ", HiWord( offset ), LoWord( offset ) );
         }
         else
         {
-            sprintf( pszStr, "%08x   ", offset );
+            sprintf( str, "%08x   ", offset );
         }
     }
     else
     {
         // No Addresses.
         
-        *pszStr = 0;
+        *str = 0;
     }
     
     
-    while ( strlen( szHex ) < 49 )
+    while ( strlen( hex_str ) < 49 )
     {
-        strcat( szHex, " " );
+        strcat( hex_str, " " );
     }
     
     
     // Add the hex output to the result string.
     
-    strcat( pszStr, szHex );
+    strcat( str, hex_str );
     
     
     if ( flags & DF_SHOW_ASCII )
     {
         // Leave two blank spaces.
         
-        strcat( pszStr, "  " );
+        strcat( str, "  " );
         
-        strcat( pszStr, szAscii );
+        strcat( str, ascii_string );
     }
     
-    return pszStr;
+    return str;
 }
 
 
@@ -428,29 +405,23 @@ char *FormatHex( char *pszStr, int flags,
 
 #ifdef _FILELENGTH
 
-int file_length( int fd )
+unsigned int file_length( FILE *fp )
 {
-    int current_offset = lseek( fd, 0, SEEK_CUR );
-    int size = lseek( fd, 0, SEEK_END );
-#ifdef _DEBUG
-    
-    int dwFinal =
-#endif
-    
-    lseek( fd, current_offset, SEEK_SET );
-    
-    DBGMSG( ( "file_length(): Original = %ld, Size = %ld, Final = %ld\n",
-             current_offset, size, dwFinal ) );
-    
-#ifdef _DEBUG
-    
-    if ( dwFinal != current_offset )
-    {
-        fprintf( stderr, "File pointer wasn't reset correctly\n" );
-    }
-#endif
-    
-    return size;
+    unsigned int len(0);
+
+    // Remember the current position in the file.
+    unsigned int cur = ftell( fp );
+
+    // Seek to the end of the file.
+    fseek( fp, 0, SEEK_END );
+
+    // Take the current position of the file (the end) as the size of the file.
+    len = ftell( fp );
+
+    // Return the file position to the initial location.
+    fseek( fp, cur, SEEK_SET );
+
+    return len;
 }
 
 #endif
@@ -459,44 +430,17 @@ int file_length( int fd )
 
 
 
-#ifdef _DEBUG
-
-void DebugPrint( char const *fmt, ... )
+void display_text( const char **str )
 {
-    char buf[ 1024 ];
-    int len;
-    va_list ap;
+    const char **p( str );
     
-    va_start( ap, fmt );
-    
-    vfprintf( stderr, fmt, ap );
-    
-    va_end( ap );
-}
-
-#endif  // _DEBUG
-
-
-
-
-
-void DisplayText( const char **str )
-{
-    char **p = ( char ** ) str;
-    
-    while ( *p )
+    while( p != 0 && *p != 0 )
     {
         fprintf( stderr, "%s\n", *p );
         
         p++;
     }
 }
-
-
-
-
-
-// End of file: hd.cpp
 
 
 
