@@ -248,7 +248,7 @@ bool hex_dump_file( char const *path, unsigned int flags )
             bytes_to_dump = size;
         }
         
-        unsigned int buffer_size = std::max( MAX_READ_BUF_SIZE, bytes_to_dump );
+        unsigned int buffer_size = std::min( MAX_READ_BUF_SIZE, bytes_to_dump );
         
         unsigned char *buffer = new unsigned char[ buffer_size ];
         
@@ -292,11 +292,11 @@ bool hex_dump_file( char const *path, unsigned int flags )
                         
                         fprintf( stdout, "%s\n", str );
                         
-                        num_read -= 16;
+                        num_read -= count;
                         
-                        cur += 16;
+                        cur += count;
                         
-                        offset += 16;
+                        offset += count;
                     }
                 }
                 
