@@ -21,9 +21,9 @@
 // Macros.
 
 #ifdef _DEBUG
-#define DBGMSG(s)  s
+#define DBGCODE(s)  s
 #else   // _DEBUG
-#define DBGMSG(list)
+#define DBGCODE(list)
 #endif  // _DEBUG
 
 
@@ -50,13 +50,13 @@ inline char AsciiFromBin( unsigned char b )
 }
 
 
-inline unsigned short HiWord( unsigned int i )
+inline unsigned short hi_word( unsigned int i )
 {
     return ( i >> 16 ) & 0x0000ffff;
 }
 
 
-inline unsigned short LoWord( unsigned int i )
+inline unsigned short lo_word( unsigned int i )
 {
     return i & 0x0000ffff;
 }
@@ -135,27 +135,27 @@ void display_text( const char **str );
 int main( int argc, char **argv )
 {
     int result(0);
-    int num_args;
     int opt;
     unsigned int flags( DF_SHOW_ADDRESS | DF_SHOW_ASCII | DF_PAGE_ALIGN );
-    const char *optstring( "aAhkn:s:" );
 
     // Process command line arguments.
     
     do
     {
+        const char *optstring( "aAhkn:s:" );
+
         opt = getopt( argc, argv, optstring );
         
         switch( opt )
         {
             case 'a':
                 flags &= ~DF_SHOW_ADDRESS;
-                DBGMSG( printf( "Turning off address display\n" ); )
+                DBGCODE( printf( "Turning off address display\n" ); )
                 break;
                 
             case 'A':
                 flags &= ~DF_SHOW_ASCII;
-                DBGMSG( printf( "Turning off ASCII display\n" ); )
+                DBGCODE( printf( "Turning off ASCII display\n" ); )
                 break;
                 
             case 'h':
@@ -165,19 +165,19 @@ int main( int argc, char **argv )
                 
             case 'k':
                 flags &= ~DF_PAGE_ALIGN;
-                DBGMSG( printf( "Turning off page alignment\n" ); )
+                DBGCODE( printf( "Turning off page alignment\n" ); )
                 break;
                 
             case 'n':
                 global.num_bytes = strtoul( optarg, NULL, 16 );
                 global.use_num_bytes = true;
-                DBGMSG( printf( "Got -n argument.  Number of bytes to dump: %u\n", global.num_bytes ); )
+                DBGCODE( printf( "Got -n argument.  Number of bytes to dump: %u\n", global.num_bytes ); )
                 break;
                 
             case 's':
                 global.offset = strtoul( optarg, NULL, 16 );
                 global.use_offset = true;
-                DBGMSG( printf( "Got -o argument.  Will dump from offset: %u\n", global.offset ); )
+                DBGCODE( printf( "Got -o argument.  Will dump from offset: %u\n", global.offset ); )
                 break;
                 
             case '?':  // Unrecognized arguments.
@@ -188,12 +188,13 @@ int main( int argc, char **argv )
     }
     while( opt != EOF );
 
-    DBGMSG( printf( "optind = %d, opterr = %d, optopt = %d\n", optind, opterr, optopt ); )
+    DBGCODE( printf( "optind = %d, opterr = %d, optopt = %d\n", optind, opterr, optopt ); )
     
-    num_args = argc - optind;
+    const int num_args( argc - optind );
+
     global.num_args = num_args;
     
-    DBGMSG( printf( "num_args = %d\n", num_args ); )
+    DBGCODE( printf( "num_args = %d\n", num_args ); )
     
     if( num_args > 0 )
     {
@@ -203,7 +204,7 @@ int main( int argc, char **argv )
         
         while( ( arg = *argv++ ) != 0 )
         {
-            DBGMSG( printf( "Calling hex_dump_file( %s )\n", arg ) ; )
+            DBGCODE( printf( "Calling hex_dump_file( %s )\n", arg ) ; )
             
             if ( num_args > 1 )
             {
@@ -232,11 +233,11 @@ int main( int argc, char **argv )
 
 bool hex_dump_file( char const *path, unsigned int flags )
 {
-    FILE *fp = fopen( path, "rb" );
+    FILE *fp( fopen( path, "rb" ) );
     
     if( fp != 0 )
     {
-        unsigned int size = file_length( fp );
+        unsigned int size( file_length( fp ) );
         unsigned int bytes_to_dump;
         
         if( global.use_num_bytes )
@@ -248,13 +249,13 @@ bool hex_dump_file( char const *path, unsigned int flags )
             bytes_to_dump = size;
         }
         
-        unsigned int buffer_size = std::min( MAX_READ_BUF_SIZE, bytes_to_dump );
+        unsigned int buffer_size( std::min( MAX_READ_BUF_SIZE, bytes_to_dump ) );
         
-        unsigned char *buffer = new unsigned char[ buffer_size ];
+        unsigned char *buffer( new unsigned char[ buffer_size ] );
         
         if( buffer != 0 )
         {
-            char *str = new char[ STRSIZE ];
+            char *str( new char[ STRSIZE ] );
             
             if( str != 0 )
             {
@@ -264,7 +265,7 @@ bool hex_dump_file( char const *path, unsigned int flags )
                 
                 fseek( fp, offset, SEEK_SET );
                 
-                DBGMSG( printf( "Starting at offset: %u\n", offset ); )
+                DBGCODE( printf( "Starting at offset: %u\n", offset ); )
                 
                 while( bytes_to_dump > 0 )
                 {
@@ -272,7 +273,7 @@ bool hex_dump_file( char const *path, unsigned int flags )
                     
                     num_read = fread( buffer, sizeof(unsigned char), buffer_size, fp );
                     
-                    DBGMSG( printf( "fread() returned %d\n", num_read ); )
+                    DBGCODE( printf( "fread() returned %d\n", num_read ); )
                     
                     if( num_read == 0 )
                     {
@@ -304,17 +305,26 @@ bool hex_dump_file( char const *path, unsigned int flags )
             }
             else
             {
-                DBGMSG( fprintf( stderr, "new(%d) failed\n", STRSIZE ); )
+                DBGCODE( fprintf( stderr, "new(%d) failed\n", STRSIZE ); )
             }
             
             delete [] buffer;
         }
         else
         {
-            DBGMSG( printf( "new(%d) failed\n", buffer_size ); )
+            DBGCODE( printf( "new(%d) failed\n", buffer_size ); )
         }
         
+        DBGCODE( int ret = )
+
         fclose( fp );
+
+        DBGCODE(
+            if( ret != 0 )
+            {
+                fprintf( stderr, "error closing file\n" );
+            }
+        )
     }
     
     return true;    // to continue processing.
@@ -362,7 +372,7 @@ char *format_hex( char *str, unsigned int flags,
     {
         if( flags & DF_SEGMENTED_ADDRESS )
         {
-            sprintf( str, "%04x:%04x   ", HiWord( offset ), LoWord( offset ) );
+            sprintf( str, "%04x:%04x   ", hi_word( offset ), lo_word( offset ) );
         }
         else
         {
