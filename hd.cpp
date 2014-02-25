@@ -46,7 +46,8 @@ enum DisplayFlags
 
 inline char AsciiFromBin( unsigned char b )
 {
-    return (char)( ( b > 0x1f && b < 0x80 ) ? (char) b : '.' );
+    // return (char)( ( b > 0x1f && b < 0x80 ) ? (char) b : '.' );
+    return (char)( ( b > 0x1f && b < 0x7f ) ? (char) b : '.' );
 }
 
 
