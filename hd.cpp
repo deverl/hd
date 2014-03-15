@@ -1,5 +1,7 @@
 // File: hd.cpp
 
+// Program to perform a hexdump of a file.
+
 // Included files.
 
 #define _FILELENGTH
