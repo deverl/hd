@@ -1,3 +1,4 @@
+# Makefile for the hd program.
 
 PLATFORM := $(shell uname)
 
