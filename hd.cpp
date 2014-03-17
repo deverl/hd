@@ -8,16 +8,12 @@
 
 #include <cstdio>
 #include <cstring>
-// #include <cstdlib>
+#include <cstdlib>
 // #include <fcntl.h>
 // #include <getopt.h>
 // #include <cerrno>
-
 #include <algorithm>
-
-#ifdef LINUX
 #include <unistd.h>
-#endif
 
 
 // Macros.
