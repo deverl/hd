@@ -1,4 +1,7 @@
 # Makefile for the hd program.
+#
+# hd is a command line program to hex-dump a file.
+#
 
 PLATFORM := $(shell uname)
 
