@@ -65,10 +65,10 @@ inline unsigned short lo_word(unsigned int i)
 
 // Type definitions.
 
-struct GLOBAL
+struct global_t
 {
 public:
-    GLOBAL()
+    global_t()
         : num_args(0),
           num_bytes(0),
           offset(0),
@@ -89,7 +89,7 @@ public:
 
 // Data.
 
-GLOBAL global;
+global_t global;
 
 
 
