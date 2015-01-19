@@ -6,12 +6,12 @@
 
 #define _FILELENGTH
 
-#include <cstdio>
-#include <cstring>
-#include <cstdlib>
-// #include <fcntl.h>
-// #include <getopt.h>
-// #include <cerrno>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <iomanip>
+
 #include <algorithm>
 #include <unistd.h>
 
@@ -25,10 +25,7 @@
 #endif  // _DEBUG
 
 
-
-
 const unsigned int MAX_READ_BUF_SIZE(65536);
-const unsigned int STRSIZE(128);
 
 
 // Display flags.
@@ -37,8 +34,7 @@ enum DisplayFlags
 {
     DF_SHOW_ADDRESS = 1,
     DF_SHOW_ASCII = 2,
-    DF_SEGMENTED_ADDRESS = 4,
-    DF_PAGE_ALIGN = 8
+    DF_PAGE_ALIGN = 4
 };
 
 
@@ -47,20 +43,6 @@ inline char AsciiFromBin(unsigned char b)
     // return (char)( ( b > 0x1f && b < 0x80 ) ? (char) b : '.' );
     return (char)((b > 0x1f && b < 0x7f) ? (char) b : '.');
 }
-
-
-inline unsigned short hi_word(unsigned int i)
-{
-    return (i >> 16) & 0x0000ffff;
-}
-
-
-inline unsigned short lo_word(unsigned int i)
-{
-    return i & 0x0000ffff;
-}
-
-
 
 
 // Type definitions.
@@ -115,14 +97,10 @@ const char *usage[] =
 
 // Function prototypes.
 
-bool hex_dump_file(char const *path, unsigned int flags);
+bool hex_dump_file(const std::string& path, unsigned int flags);
 
-char *format_hex(char *str,  unsigned int flags,
-                 unsigned int offset, unsigned char const *buffer, unsigned int count);
-
-#ifdef _FILELENGTH
-unsigned int file_length(FILE *fp);
-#endif
+size_t format_hex(std::string& str,  unsigned int flags,
+                  unsigned int offset, unsigned char const *buffer, unsigned int count);
 
 void display_text(const char **str);
 
@@ -149,12 +127,12 @@ int main(int argc, char **argv)
         {
         case 'a':
             flags &= ~DF_SHOW_ADDRESS;
-            DBGCODE(printf("Turning off address display\n");)
+            DBGCODE(std::cout << "Turning off address display" << std::endl;)
             break;
 
         case 'A':
             flags &= ~DF_SHOW_ASCII;
-            DBGCODE(printf("Turning off ASCII display\n");)
+            DBGCODE(std::cout << "Turning off ASCII display" << std::endl;)
             break;
 
         case 'h':
@@ -164,19 +142,23 @@ int main(int argc, char **argv)
 
         case 'k':
             flags &= ~DF_PAGE_ALIGN;
-            DBGCODE(printf("Turning off page alignment\n");)
+            DBGCODE(std::cout << "Turning off page alignment" << std::endl;)
             break;
 
         case 'n':
-            global.num_bytes = strtoul(optarg, NULL, 16);
+            global.num_bytes = static_cast<int>(strtoul(optarg, NULL, 16));
             global.use_num_bytes = true;
-            DBGCODE(printf("Got -n argument.  Number of bytes to dump: %u\n", global.num_bytes);)
+            DBGCODE(std::cout << "Got -n argument.  Number of bytes to dump: "
+                              << global.num_bytes
+                              << std::endl;)
             break;
 
         case 's':
-            global.offset = strtoul(optarg, NULL, 16);
+            global.offset = static_cast<int>(strtoul(optarg, NULL, 16));
             global.use_offset = true;
-            DBGCODE(printf("Got -o argument.  Will dump from offset: %u\n", global.offset);)
+            DBGCODE(std::cout << "Got -o argument.  Will dump from offset: "
+                              << global.offset
+                              << std::endl;)
             break;
 
         case '?':  // Unrecognized arguments.
@@ -187,13 +169,16 @@ int main(int argc, char **argv)
     }
     while(opt != EOF);
 
-    DBGCODE(printf("optind = %d, opterr = %d, optopt = %d\n", optind, opterr, optopt);)
+    DBGCODE(std::cout << "optind = "   << optind
+                      << ", opterr = " << opterr
+                      << ", optopt = " << optopt
+                      << std::endl;)
 
     const int num_args(argc - optind);
 
     global.num_args = num_args;
 
-    DBGCODE(printf("num_args = %d\n", num_args);)
+    DBGCODE(std::cout << "num_args = " << num_args << std::endl;)
 
     if(num_args > 0)
     {
@@ -203,7 +188,7 @@ int main(int argc, char **argv)
 
         while((arg = *argv++) != 0)
         {
-            DBGCODE(printf("Calling hex_dump_file( %s )\n", arg) ;)
+            DBGCODE(std::cout << "Calling hex_dump_file(" << arg << ")" << std::endl;)
 
             if(num_args > 1)
             {
@@ -230,13 +215,13 @@ int main(int argc, char **argv)
 
 
 
-bool hex_dump_file(char const *path, unsigned int flags)
+bool hex_dump_file(const std::string& path, unsigned int flags)
 {
-    FILE *fp(fopen(path, "rb"));
+    std::ifstream file(path, std::ios::in|std::ios::binary|std::ios::ate);
 
-    if(fp != 0)
+    if(file.is_open())
     {
-        unsigned int size(file_length(fp));
+        unsigned int size(static_cast<unsigned int>(file.tellg()));
         unsigned int bytes_to_dump;
 
         if(global.use_num_bytes)
@@ -254,76 +239,59 @@ bool hex_dump_file(char const *path, unsigned int flags)
 
         if(buffer != 0)
         {
-            char *str(new char[ STRSIZE ]);
+            std::string str;
+            int offset;
 
-            if(str != 0)
+            offset = global.use_offset ? global.offset : 0L;
+
+            file.seekg(offset, std::ios::beg);
+
+            DBGCODE(std::cout << "Starting at offset: " << offset << std::endl;)
+
+            while(bytes_to_dump > 0)
             {
-                int offset;
+                unsigned int num_read;
 
-                offset = global.use_offset ? global.offset : 0L;
+                file.read(reinterpret_cast<char *>(buffer), buffer_size);
 
-                fseek(fp, offset, SEEK_SET);
+                num_read = static_cast<unsigned int>(file.gcount());
 
-                DBGCODE(printf("Starting at offset: %u\n", offset);)
+                DBGCODE(std::cout << "fread() returned " << num_read << std::endl;)
 
-                while(bytes_to_dump > 0)
+                if(num_read == 0)
                 {
-                    unsigned int num_read;
-
-                    num_read = fread(buffer, sizeof(unsigned char), buffer_size, fp);
-
-                    DBGCODE(printf("fread() returned %d\n", num_read);)
-
-                    if(num_read == 0)
-                    {
-                        bytes_to_dump = 0L;
-                        break;
-                    }
-
-                    unsigned char *cur = buffer;
-
-                    bytes_to_dump -= num_read;
-
-                    while(num_read > 0)
-                    {
-                        unsigned int count = (unsigned int)((num_read > 15) ? 16 : num_read);
-
-                        format_hex(str, flags, offset, cur, count);
-
-                        fprintf(stdout, "%s\n", str);
-
-                        num_read -= count;
-
-                        cur += count;
-
-                        offset += count;
-                    }
+                    bytes_to_dump = 0L;
+                    break;
                 }
 
-                delete [] str;
-            }
-            else
-            {
-                DBGCODE(fprintf(stderr, "new(%d) failed\n", STRSIZE);)
+                unsigned char *cur = buffer;
+
+                bytes_to_dump -= num_read;
+
+                while(num_read > 0)
+                {
+                    unsigned int count = (unsigned int)((num_read > 15) ? 16 : num_read);
+
+                    format_hex(str, flags, offset, cur, count);
+
+                    std::cout << str << std::endl;
+
+                    num_read -= count;
+
+                    cur += count;
+
+                    offset += count;
+                }
             }
 
             delete [] buffer;
         }
         else
         {
-            DBGCODE(printf("new(%d) failed\n", buffer_size);)
+            DBGCODE(std::cout << "new " << buffer_size << " failed" << std::endl;)
         }
 
-        DBGCODE(int ret =)
-
-        fclose(fp);
-
-        DBGCODE(
-            if(ret != 0)
-    {
-        fprintf(stderr, "error closing file\n");
-        }
-        )
+        file.close();
     }
 
     return true;    // to continue processing.
@@ -332,108 +300,50 @@ bool hex_dump_file(char const *path, unsigned int flags)
 
 
 
-char *format_hex(char *str, unsigned int flags,
-                 unsigned int offset, unsigned char const *buffer, unsigned int count)
+size_t format_hex(std::string& str, unsigned int flags,
+                  unsigned int offset, unsigned char const *buffer, unsigned int count)
 {
-    char hex_str[ 60 ] = { 0 };
-    char ascii_string[ 20 ];
-    char temp_str[ 8 ];
+    std::stringstream ss;
+    std::string ascii;
     unsigned char b;
-    unsigned int i;
 
+    if(flags & DF_SHOW_ADDRESS)
+    {
+        ss << std::hex << std::setw(8) << std::setfill('0') << offset << "   ";
+    }
 
-    for(i = 0; i < count; i++)
+    for(unsigned int i = 0; i < count; i++)
     {
         b = *(buffer + i);
 
-        sprintf(temp_str, "%02x ", b);
-
-        strcat(hex_str, temp_str);
+        ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<unsigned int>(b) << " ";
 
         if(i == 7)
         {
-            strcat(hex_str, " ");
+            ss << " ";
         }
 
         if(flags & DF_SHOW_ASCII)
         {
-            ascii_string[ i ] = AsciiFromBin(b);
-        }
-        else
-        {
-            ascii_string[ i ] = 0;
+            ascii += AsciiFromBin(b);
         }
     }
 
-    ascii_string[ i ] = 0;
-
-    if(flags & DF_SHOW_ADDRESS)
+    while(ss.str().length() < 62)
     {
-        if(flags & DF_SEGMENTED_ADDRESS)
-        {
-            sprintf(str, "%04x:%04x   ", hi_word(offset), lo_word(offset));
-        }
-        else
-        {
-            sprintf(str, "%08x   ", offset);
-        }
-    }
-    else
-    {
-        // No Addresses.
-
-        *str = 0;
+        ss << " ";
     }
 
 
-    while(strlen(hex_str) < 49)
-    {
-        strcat(hex_str, " ");
-    }
+    // Add the ASCII portion.
 
+    ss << ascii;
 
-    // Add the hex output to the result string.
+    str = ss.str();
 
-    strcat(str, hex_str);
-
-
-    if(flags & DF_SHOW_ASCII)
-    {
-        // Leave two blank spaces.
-
-        strcat(str, "  ");
-
-        strcat(str, ascii_string);
-    }
-
-    return str;
+    return str.length();
 }
 
-
-
-
-#ifdef _FILELENGTH
-
-unsigned int file_length(FILE *fp)
-{
-    unsigned int len(0);
-
-    // Remember the current position in the file.
-    unsigned int cur = ftell(fp);
-
-    // Seek to the end of the file.
-    fseek(fp, 0, SEEK_END);
-
-    // Take the current position of the file (the end) as the size of the file.
-    len = ftell(fp);
-
-    // Return the file position to the initial location.
-    fseek(fp, cur, SEEK_SET);
-
-    return len;
-}
-
-#endif
 
 
 
