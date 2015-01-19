@@ -305,7 +305,6 @@ size_t format_hex(std::string& str, unsigned int flags,
 {
     std::stringstream ss;
     std::string ascii;
-    unsigned char b;
 
     if(flags & DF_SHOW_ADDRESS)
     {
@@ -314,7 +313,7 @@ size_t format_hex(std::string& str, unsigned int flags,
 
     for(unsigned int i = 0; i < count; i++)
     {
-        b = *(buffer + i);
+        unsigned char b = *(buffer + i);
 
         ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<unsigned int>(b) << " ";
 
@@ -333,7 +332,6 @@ size_t format_hex(std::string& str, unsigned int flags,
     {
         ss << " ";
     }
-
 
     // Add the ASCII portion.
 
