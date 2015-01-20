@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <vector>
 #include <string>
 #include <sstream>
 #include <iomanip>
@@ -68,6 +69,9 @@ public:
 };
 
 
+typedef std::vector<std::string>    strvec_t;
+
+
 
 // Data.
 
@@ -76,21 +80,19 @@ global_t global;
 
 
 
-
-const char *usage[] =
+void make_usage(strvec_t& vec)
 {
-    "",
-    "usage: hd [opts] file ...",
-    "   opts:",
-    "     -a         Strip addresses from output",
-    "     -A         Strip ASCII display from output",
-    "     -h         Print this screen",
-    //  "     -k         No page alignment",
-    "     -n count   Dump only 'count' (hex) bytes from the file",
-    "     -s offset  Start dump at 'offset' (hex) bytes into the file",
-    "",
-    0
-};
+    vec.push_back("");
+    vec.push_back("usage: hd [opts] file ...");
+    vec.push_back("   opts:");
+    vec.push_back("     -a         Strip addresses from output");
+    vec.push_back("     -A         Strip ASCII display from output");
+    vec.push_back("     -h         Print this screen");
+    //  vec.push_back("     -k         No page alignment");
+    vec.push_back("     -n count   Dump only 'count' (hex) bytes from the file");
+    vec.push_back("     -s offset  Start dump at 'offset' (hex) bytes into the file");
+    vec.push_back("");
+}
 
 
 
@@ -102,7 +104,7 @@ bool hex_dump_file(const std::string& path, unsigned int flags);
 size_t format_hex(std::string& str,  unsigned int flags,
                   unsigned int offset, unsigned char const *buffer, unsigned int count);
 
-void display_text(const char **str);
+void display_text(const strvec_t& vec);
 
 
 
@@ -114,6 +116,9 @@ int main(int argc, char **argv)
     int result(0);
     int opt;
     unsigned int flags(DF_SHOW_ADDRESS | DF_SHOW_ASCII | DF_PAGE_ALIGN);
+    strvec_t usage;
+
+    make_usage(usage);
 
     // Process command line arguments.
 
@@ -347,15 +352,15 @@ size_t format_hex(std::string& str, unsigned int flags,
 
 
 
-void display_text(const char **str)
+void display_text(const strvec_t& vec)
 {
-    const char **p(str);
+    strvec_t::const_iterator it(vec.begin());
 
-    while(p != 0 && *p != 0)
+    while(it != vec.end())
     {
-        fprintf(stderr, "%s\n", *p);
-
-        p++;
+        const std::string& s(*it);
+        std::cerr << s << std::endl;
+        ++it;
     }
 }
 
