@@ -5,7 +5,7 @@
 
 PLATFORM := $(shell uname)
 
-CPP_FLAGS = -c -Wall -pedantic
+CPP_FLAGS = -c -Wall -pedantic --std=c++11
 
 ifdef DEBUG
     CPP_FLAGS += -g3 -O0 -DDEBUG -D_DEBUG

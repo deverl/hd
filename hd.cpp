@@ -77,22 +77,18 @@ typedef std::vector<std::string>    strvec_t;
 
 global_t global;
 
-
-
-
-void make_usage(strvec_t& vec)
-{
-    vec.push_back("");
-    vec.push_back("usage: hd [opts] file ...");
-    vec.push_back("   opts:");
-    vec.push_back("     -a         Strip addresses from output");
-    vec.push_back("     -A         Strip ASCII display from output");
-    vec.push_back("     -h         Print this screen");
-    //  vec.push_back("     -k         No page alignment");
-    vec.push_back("     -n count   Dump only 'count' (hex) bytes from the file");
-    vec.push_back("     -s offset  Start dump at 'offset' (hex) bytes into the file");
-    vec.push_back("");
-}
+static strvec_t usage = { "",
+                          "usage: hd [opts] file ...",
+                          "",
+                          " opts:",
+                          "     -a         Strip addresses from output",
+                          "     -A         Strip ASCII display from output",
+                          "     -h         Print this screen",
+                          //  "     -k         No page alignment",
+                          "     -n count   Dump only 'count' (hex) bytes from the file",
+                          "     -s offset  Start dump at 'offset' (hex) bytes into the file",
+                          ""
+                        };
 
 
 
@@ -116,9 +112,6 @@ int main(int argc, char **argv)
     int result(0);
     int opt;
     unsigned int flags(DF_SHOW_ADDRESS | DF_SHOW_ASCII | DF_PAGE_ALIGN);
-    strvec_t usage;
-
-    make_usage(usage);
 
     // Process command line arguments.
 
@@ -354,15 +347,9 @@ size_t format_hex(std::string& str, unsigned int flags,
 
 void display_text(const strvec_t& vec)
 {
-    strvec_t::const_iterator it(vec.begin());
-
-    while(it != vec.end())
+    for( const auto& s : vec )
     {
-        const std::string& s(*it);
         std::cerr << s << std::endl;
-        ++it;
     }
 }
-
-
 
