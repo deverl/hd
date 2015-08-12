@@ -95,12 +95,12 @@ static strvec_t usage = { "",
 
 // Function prototypes.
 
-bool hex_dump_file(const std::string& path, unsigned int flags);
+bool hex_dump_file(const std::string &path, unsigned int flags);
 
-size_t format_hex(std::string& str,  unsigned int flags,
+size_t format_hex(std::string &str,  unsigned int flags,
                   unsigned int offset, unsigned char const *buffer, unsigned int count);
 
-void display_text(const strvec_t& vec);
+void display_text(const strvec_t &vec);
 
 
 
@@ -147,16 +147,16 @@ int main(int argc, char **argv)
             global.num_bytes = static_cast<int>(strtoul(optarg, NULL, 16));
             global.use_num_bytes = true;
             DBGCODE(std::cout << "Got -n argument.  Number of bytes to dump: "
-                              << global.num_bytes
-                              << std::endl;)
+                    << global.num_bytes
+                    << std::endl;)
             break;
 
         case 's':
             global.offset = static_cast<int>(strtoul(optarg, NULL, 16));
             global.use_offset = true;
             DBGCODE(std::cout << "Got -o argument.  Will dump from offset: "
-                              << global.offset
-                              << std::endl;)
+                    << global.offset
+                    << std::endl;)
             break;
 
         case '?':  // Unrecognized arguments.
@@ -168,9 +168,9 @@ int main(int argc, char **argv)
     while(opt != EOF);
 
     DBGCODE(std::cout << "optind = "   << optind
-                      << ", opterr = " << opterr
-                      << ", optopt = " << optopt
-                      << std::endl;)
+            << ", opterr = " << opterr
+            << ", optopt = " << optopt
+            << std::endl;)
 
     const int num_args(argc - optind);
 
@@ -213,7 +213,7 @@ int main(int argc, char **argv)
 
 
 
-bool hex_dump_file(const std::string& path, unsigned int flags)
+bool hex_dump_file(const std::string &path, unsigned int flags)
 {
     std::ifstream file(path, std::ios::in|std::ios::binary|std::ios::ate);
 
@@ -298,7 +298,7 @@ bool hex_dump_file(const std::string& path, unsigned int flags)
 
 
 
-size_t format_hex(std::string& str, unsigned int flags,
+size_t format_hex(std::string &str, unsigned int flags,
                   unsigned int offset, unsigned char const *buffer, unsigned int count)
 {
     std::stringstream ss;
@@ -345,9 +345,9 @@ size_t format_hex(std::string& str, unsigned int flags,
 
 
 
-void display_text(const strvec_t& vec)
+void display_text(const strvec_t &vec)
 {
-    for( const auto& s : vec )
+    for(const auto &s : vec)
     {
         std::cerr << s << std::endl;
     }
