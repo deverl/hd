@@ -77,18 +77,21 @@ typedef std::vector<std::string>    strvec_t;
 
 global_t global;
 
-static strvec_t usage = { "",
-                          "usage: hd [opts] file ...",
-                          "",
-                          " opts:",
-                          "     -a         Strip addresses from output",
-                          "     -A         Strip ASCII display from output",
-                          "     -h         Print this screen",
-                          //  "     -k         No page alignment",
-                          "     -n count   Dump only 'count' (hex) bytes from the file",
-                          "     -s offset  Start dump at 'offset' (hex) bytes into the file",
-                          ""
-                        };
+const char *usage_init[] = {
+    "",
+    "usage: hd [opts] file ...",
+    "",
+    " opts:",
+    "     -a         Strip addresses from output",
+    "     -A         Strip ASCII display from output",
+    "     -h         Print this screen",
+    //  "     -k         No page alignment",
+    "     -n count   Dump only 'count' (hex) bytes from the file",
+    "     -s offset  Start dump at 'offset' (hex) bytes into the file",
+    ""
+};
+
+static strvec_t usage(usage_init, std::end(usage_init));
 
 
 
