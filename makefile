@@ -51,3 +51,6 @@ $(OBJDIR)/%.d : %.cpp makefile
 clean:
 	rm -rf $(PLATFORM)_obj[dn]
 
+install: $(OBJDIR)/hd
+	cp $(OBJDIR)/hd ~/bin
+
