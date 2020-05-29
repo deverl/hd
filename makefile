@@ -38,6 +38,7 @@ DEP_FILES := $(OBJ_FILES:.o=.d)
 $(OBJDIR)/hd : $(OBJ_FILES) makefile
 	@if [ ! -d $(@D) ] ; then mkdir -p $(@D) ; fi
 	g++ -o $@ $(OBJ_FILES)
+	strip $(OBJDIR)/hd
 
 $(OBJDIR)/%.o : %.cpp makefile $(OBJDIR)/%.d
 	@if [ ! -d $(@D) ] ; then mkdir -p $(@D) ; fi
