@@ -5,6 +5,12 @@
 
 PLATFORM := $(shell uname)
 
+ifeq ($(PLATFORM), Darwin)
+    CPP := $(shell /bin/ls -1 /usr/local/bin/g++* | sed 's/@//g' | sed 's/\/usr\/local\/bin\///g')
+else
+    CPP := g++
+endif
+
 CPP_FLAGS = -c -Wall -pedantic --std=c++11
 
 ifdef DEBUG
@@ -37,19 +43,19 @@ DEP_FILES := $(OBJ_FILES:.o=.d)
 
 $(OBJDIR)/hd : $(OBJ_FILES) makefile
 	@if [ ! -d $(@D) ] ; then mkdir -p $(@D) ; fi
-	g++ -o $@ $(OBJ_FILES)
+	$(CPP) -o $@ $(OBJ_FILES)
 ifndef DEBUG
 	strip $(OBJDIR)/hd
 endif
 
 $(OBJDIR)/%.o : %.cpp makefile $(OBJDIR)/%.d
 	@if [ ! -d $(@D) ] ; then mkdir -p $(@D) ; fi
-	g++ $(CPP_FLAGS) -o $@ $<
+	$(CPP) $(CPP_FLAGS) -o $@ $<
 
 $(OBJDIR)/%.d : %.cpp makefile
 	@if [ ! -d $(@D) ] ; then mkdir -p $(@D) ; fi
 	@echo "Generating dependencies for $<"
-	@g++ $(CPP_FLAGS) -MM -MT $@ $< > $(@:.o=.d)
+	@$(CPP) $(CPP_FLAGS) -MM -MT $@ $< > $(@:.o=.d)
 
 clean:
 	rm -rf $(PLATFORM)_obj[dn]
