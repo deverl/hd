@@ -6,7 +6,7 @@
 PLATFORM := $(shell uname)
 
 ifeq ($(PLATFORM), Darwin)
-    CPP := $(shell /bin/ls -1 /usr/local/bin/g++* | sed 's/@//g' | sed 's/\/usr\/local\/bin\///g')
+    CPP := $(shell /bin/ls -1 /usr/local/bin/g++* | sed 's/@//g' | sed 's/^.*g++/g++/g')
 else
     CPP := g++
 endif
