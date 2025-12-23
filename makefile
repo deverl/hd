@@ -12,7 +12,7 @@ else
     CPP := g++
 endif
 
-CPP_FLAGS = -c -Wall -pedantic --std=c++11
+CPP_FLAGS = -c -Wall -pedantic --std=c++20
 
 ifdef DEBUG
     CPP_FLAGS += -g3 -O0 -DDEBUG -D_DEBUG
