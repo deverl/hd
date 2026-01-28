@@ -1,6 +1,6 @@
 env = Environment()
-env.Append(CXXFLAGS = "-Wall -pedantic --std=c++11 -O3 -DNDEBUG -DRELEASE")
-env.Replace(CXX = "g++-6")
+env.Append(CXXFLAGS = "-Wall -pedantic --std=c++20 -O3 -DNDEBUG -DRELEASE")
+env.Replace(CXX = "g++")
 env.Program(target = "hd", source = ["hd.cpp"])
 # print env.Dump()
 

@@ -4,4 +4,5 @@ Linux_objd/
 Darwin_objn/
 Darwin_objd/
 build/
+build-debug/
 .sconsign.dblite
