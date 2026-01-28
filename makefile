@@ -15,7 +15,7 @@ endif
 CPP_FLAGS = -c -Wall -pedantic --std=c++20
 
 ifdef DEBUG
-    CPP_FLAGS += -g3 -O0 -DDEBUG -D_DEBUG
+    CPP_FLAGS += -g2 -O0 -DDEBUG -D_DEBUG
     OBJDIR := $(PLATFORM)_objd
 else
     CPP_FLAGS += -O3 -DNDEBUG -DRELEASE
