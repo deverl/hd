@@ -6,7 +6,7 @@
 PLATFORM := $(shell uname)
 
 ifeq ($(PLATFORM), Darwin)
-    BREW_HOME_DIR=`brew --prefix`
+    # BREW_HOME_DIR=`brew --prefix`
     # CPP := $(shell /bin/ls -1 $(BREW_HOME_DIR)/bin/g++* | sed 's/@//g' | sed 's/^.*g++/g++/g')
     CPP := clang++
 else
