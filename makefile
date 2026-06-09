@@ -60,7 +60,7 @@ $(OBJDIR)/%.d : %.cpp makefile
 	@$(CPP) $(CPP_FLAGS) -MM -MT $@ $< > $(@:.o=.d)
 
 clean:
-	rm -rf $(PLATFORM)_obj[dn]
+	rm -rf $(PLATFORM)_obj[dn] hd hd.dSYM
 
 install: $(OBJDIR)/hd
 	cp $(OBJDIR)/hd ~/bin
